@@ -1,7 +1,7 @@
 const academyApp = (() => {
   const telegramConfig = {
-    botToken: "PUT_TELEGRAM_BOT_TOKEN_HERE",
-    chatId: "PUT_TELEGRAM_CHAT_ID_HERE"
+    botToken: "8513994068:AAEwDkf9LP5CXFajSNAj9RLcD2AoEAU19Ng",
+    chatId: "1687298540"
   };
 
   const navToggle = document.querySelector(".nav-toggle");
@@ -9,6 +9,7 @@ const academyApp = (() => {
   const navLinks = [...document.querySelectorAll(".site-nav a[href^='#']")];
   const topLinks = [...document.querySelectorAll('a[href="#top"]')];
   const contactForm = document.querySelector("#contactForm");
+  const formStatus = document.querySelector(".form-status");
   const revealItems = [...document.querySelectorAll(".reveal")];
   const statNumbers = [...document.querySelectorAll(".stat-number")];
   const watchedSections = [...document.querySelectorAll(".section-watch, .hero")];
@@ -29,6 +30,32 @@ const academyApp = (() => {
       !telegramConfig.botToken.includes("PUT_") &&
       !telegramConfig.chatId.includes("PUT_")
     );
+  }
+
+  function setFormStatus(type, title, message) {
+    if (!formStatus) return;
+
+    const icon = formStatus.querySelector("i");
+    const statusTitle = formStatus.querySelector("strong");
+    const statusMessage = formStatus.querySelector("span");
+    const iconClasses = {
+      loading: "fa-solid fa-spinner fa-spin",
+      success: "fa-solid fa-circle-check",
+      error: "fa-solid fa-triangle-exclamation"
+    };
+
+    formStatus.hidden = false;
+    formStatus.className = `form-status is-${type}`;
+    icon.className = iconClasses[type] || "fa-solid fa-circle-info";
+    statusTitle.textContent = title;
+    statusMessage.textContent = message;
+  }
+
+  function clearFormStatus() {
+    if (!formStatus) return;
+
+    formStatus.hidden = true;
+    formStatus.className = "form-status";
   }
 
   function setMenu(open) {
@@ -105,6 +132,8 @@ const academyApp = (() => {
   }
 
   function bindContactForm() {
+    contactForm.addEventListener("input", clearFormStatus);
+
     contactForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
@@ -124,7 +153,11 @@ const academyApp = (() => {
       ].filter(Boolean).join("\n");
 
       if (!isTelegramReady()) {
-        alert("حتى تصل رسائل الفورم إلى تليجرام، ضع botToken و chatId في أعلى ملف script.js.");
+        setFormStatus(
+          "error",
+          "إعدادات تليجرام غير مكتملة",
+          "ضع botToken و chatId في أعلى ملف script.js حتى تصل رسائل النموذج."
+        );
         return;
       }
 
@@ -132,6 +165,7 @@ const academyApp = (() => {
       const originalButtonHtml = submitButton.innerHTML;
       submitButton.disabled = true;
       submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال';
+      setFormStatus("loading", "جاري إرسال الطلب", "نرسل التفاصيل الآن إلى تليجرام. انتظر لحظة فقط.");
 
       try {
         const response = await fetch(`https://api.telegram.org/bot${telegramConfig.botToken}/sendMessage`, {
@@ -148,9 +182,13 @@ const academyApp = (() => {
         }
 
         contactForm.reset();
-        alert("تم إرسال رسالتك بنجاح عبر تليجرام.");
+        setFormStatus("success", "تم إرسال الطلب بنجاح", "وصلت بياناتك إلى فريق أكاديمية النون وسنعود إليك قريباً.");
       } catch (error) {
-        alert("تعذر إرسال الرسالة إلى تليجرام. تأكد من botToken و chatId ثم حاول مرة أخرى.");
+        setFormStatus(
+          "error",
+          "تعذر إرسال الطلب",
+          "تحقق من اتصال الإنترنت وإعدادات تليجرام، ثم حاول مرة أخرى."
+        );
       } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = originalButtonHtml;
